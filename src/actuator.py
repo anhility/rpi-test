@@ -27,6 +27,8 @@ STATE = False               # Default state
 HELLO = "hello"             # Hello message
 GET_STATE = "getState"      # GetState message
 POLL_TIME = 10              # ms to wait between each loop cycle
+HIGH = GPIO.HIGH
+LOW = GPIO.LOW
 #TODO: Add debug output
 DEBUG = True                # Set to true for debug info
 
@@ -35,7 +37,15 @@ ERR_S_DEAD = False          # Sensor is dead
 
 ### Functions ###
 def init():
-    
+    GPIO.setmode(GPIO.BOARD)        # Sets pin mode to BOARD (Pin numbers)
+    GPIO.setwarnings(False)         # Suppresses startup warnings.
+    GPIO.setup(7, GPIO.OUT)         # Sets pins as output.
+    GPIO.setup(11, GPIO.OUT)
+    GPIO.setup(13, GPIO.OUT)
+    GPIO.output(7, LOW)             # Turns off lights at startup.
+    GPIO.output(11, LOW)
+    GPIO.output(13, LOW)
+
     global UDP, TIMER_HELLO, TIMER_DEAD
     initTime    = time()
     TIMER_HELLO = initTime
@@ -43,17 +53,17 @@ def init():
     
     ## UDP Setup ##
     #TODO: Change to SOCKET
-    UDP = UDPSocket()
-    UDP.begin(UDP_PORT)
+    #UDP = UDPSocket()
+    #UDP.begin(UDP_PORT)
     
     ## Zeroize output ##
-    updateFan(False)
+    #updateFan(False)
     
     ## Send hello ##
-    sendUDP(HELLO)
+    #sendUDP(HELLO)
     
     ## Request state ##
-    sendUDP(GET_STATE)
+    #sendUDP(GET_STATE)
     
     return
 
@@ -137,6 +147,4 @@ def main():
             updateFan(STATE)
     
 
-if __name__ == "__main__":
-    print("Actuator activated")
-    main()
+main()

@@ -1,4 +1,3 @@
-
 #TODO: Implement SOCKET/UDP
 #TODO: Implement rpi.gpio
 
@@ -50,18 +49,18 @@ def init():
     initTime    = time()
     TIMER_HELLO = initTime
     TIMER_DEAD  = initTime
-    
+
     ## UDP Setup ##
     #TODO: Change to SOCKET
     #UDP = UDPSocket()
     #UDP.begin(UDP_PORT)
-    
+
     ## Zeroize output ##
     #updateFan(False)
-    
+
     ## Send hello ##
     #sendUDP(HELLO)
-    
+
     ## Request state ##
     #sendUDP(GET_STATE)
     
@@ -83,7 +82,7 @@ def onUDPReceive(_, _, data):
 def listenUDP():
     global UDP_MSG, STATE, TIMER_DEAD, ERR_S_DEAD
     
-    UDP.onReceive(onUDPReceive)
+    #UDP.onReceive(onUDPReceive)
     
     if UDP_MSG == HELLO:
         TIMER_DEAD = time()
@@ -112,10 +111,14 @@ def updateFan(state):
         customWrite(0, 2)
     return
 
+def customtimer(state)
+    if state == 1:
+    time 
+
 ### Main Function ###
 def main():
     #TODO: Change to valid gpio
-    pinMode(0, OUT)            # Signal to fan
+    pinMode(0, OUT)            # Signal to light
     
     ## Initialization ##
     init()

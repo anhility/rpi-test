@@ -31,11 +31,17 @@ def listenonUDP(clientsocket):
     while True:
         lock.acquire()
         data = clientsocket.recv(1024)
-        print(data.decode(MSG_ENC))
+        #print(data.decode(MSG_ENC))
         lock.release()
-        if data.decode != 'hello':
+        if data.decode != '1':
             timer = time.time()
-            lightState(7, data)
+            while data.decode != '0':
+                data = clientsocket.recv(1024)
+                lightState(7, data.decode)
+                if timer - time.time() > 5:
+                    lightState(11, data.decode)
+            lightState(7, data.decode)
+            lightState(11, data.decode)
 
 # Threaded, sends hello packets.
 def sendUDP(clientsocket):

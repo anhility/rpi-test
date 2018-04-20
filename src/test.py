@@ -17,11 +17,9 @@ def main():
     print('Running program')
     clientsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     clientsocket.bind((SRC_IP, PORT))
-    for x in range(0, 3):
-        clientsocket.sendto(bytes(SNT_MSG, MSG_ENC), (DST_IP, PORT))
     while True:
-        message = clientsocket.recv(1024)
-        print(message.decode(MSG_ENC))
+        message = input()
+        clientsocket.sendto(bytes(message, MSG_ENC), (DST_IP, PORT))
     clientsocket.close()
     print('Exiting program')
 

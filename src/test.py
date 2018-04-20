@@ -1,3 +1,5 @@
+# USE ON LAPTOP FOR TESTING
+
 import threading
 import time
 import socket

@@ -21,7 +21,7 @@ MSG_ENC = 'UTF-8' # Message encoding.
 # Sets the state of the light. 1 for on, 0 for off. Uses the received data.
 def lightState(pin, data):
     if data == '1':
-        GPIO.output(pin, HIGH
+        GPIO.output(pin, HIGH)
     elif data == '0':
         GPIO.output(pin, LOW)
 

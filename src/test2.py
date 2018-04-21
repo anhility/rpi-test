@@ -29,22 +29,24 @@ def lightState(pin, data):
 def listenonUDP(clientsocket):
     lock = threading.Lock()
     while True:
-        lock.acquire()
-        data = clientsocket.recv(1024)
-        #print(data.decode(MSG_ENC))
-        lock.release()
-        if data.decode != '1':
-            timer = time.time() # Starts a timer. Used for determining when to light the second light.
-            while data.decode != '0':
-                lock.acquire()
-                data = clientsocket.recv(1024)
-                lock.release()
+        try:
+            data = clientsocket.recv(1024)
+            if data.decode(MSG_ENC) == '1':
                 lightState(7, data.decode(MSG_ENC))
-                if timer - time.time() > 5:
-                    lightState(11, data.decode(MSG_ENC))
-            # Turns off lights only after receiving a 0.
-            lightState(7, data.decode(MSG_ENC))
-            lightState(11, data.decode(MSG_ENC))
+                timer = time.time() # Starts a timer. Used for determining when to light the second light.
+                while True:
+                    if timer - time.time() > 5:
+                        lightState(11, data.decode(MSG_ENC))
+                        try:
+                            data = clientsocket.recv(1024)
+                            if data.decode(MSG_ENC):
+                                break
+                        except:
+                            pass
+        except:
+            pass
+        lightState(7, data.decode(MSG_ENC))
+        lightState(11, data.decode(MSG_ENC))
 
 # Thread2, sends hello packets.
 def sendUDP(clientsocket):
@@ -53,7 +55,7 @@ def sendUDP(clientsocket):
         timer = time.time() # Timer used for setting the frequency of keep-alives.
         if time.time() - timer > 0.5:
             lock.acquire()
-            clientsocket.sendto(bytes(SNT_MSG, MSG_ENC), (DST_IP, PORT))
+            clientsocket.sendto(bytes(SNT_MSG, MSG_ENC), (DST_IP, PORT)
             lock.release()
             timer = time.time()
 
@@ -67,7 +69,7 @@ def main():
     GPIO.output(11, LOW)
     clientsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     clientsocket.bind((SRC_IP, PORT)) # Binds the IP and port to the pi. Prevents the socket from closing.
-
+    clientsocket.setblocking(False)
     # Makes the functions ListenonUDP and sendUDP into threads and sends clientsocket as argument.
     t1 = threading.Thread(target = listenonUDP, args = (clientsocket,))
     t2 = threading.Thread(target = sendUDP, args = (clientsocket,))

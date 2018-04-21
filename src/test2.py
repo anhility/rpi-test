@@ -35,27 +35,27 @@ def listenonUDP(clientsocket):
                 lightState(7, data.decode(MSG_ENC))
                 timer = time.time() # Starts a timer. Used for determining when to light the second light.
                 while True:
-                    if timer - time.time() > 5:
-                        lightState(11, data.decode(MSG_ENC))
+                    if time.time() - timer >= 5:
+                        lightState(11, '1')
                         try:
                             data = clientsocket.recv(1024)
-                            if data.decode(MSG_ENC):
+                            if data.decode(MSG_ENC) == '0':
                                 break
                         except:
                             pass
         except:
             pass
-        lightState(7, data.decode(MSG_ENC))
-        lightState(11, data.decode(MSG_ENC))
+        lightState(7, '0')
+        lightState(11, '0')
 
 # Thread2, sends hello packets.
 def sendUDP(clientsocket):
     lock = threading.Lock()
+    timer = time.time()
     while True:
-        timer = time.time() # Timer used for setting the frequency of keep-alives.
-        if time.time() - timer > 0.5:
+        if time.time() - timer >= 0.5:
             lock.acquire()
-            clientsocket.sendto(bytes(SNT_MSG, MSG_ENC), (DST_IP, PORT)
+            clientsocket.sendto(bytes(SNT_MSG, MSG_ENC), (DST_IP, PORT))
             lock.release()
             timer = time.time()
 

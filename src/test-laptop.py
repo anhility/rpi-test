@@ -15,10 +15,13 @@ MSG_ENC = 'UTF-8'
 
 def main():
     print('Running program')
+    print('Type quit to exit')
     clientsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     clientsocket.bind((SRC_IP, PORT))
     while True:
         message = input()
+        if message == 'quit':
+            break
         clientsocket.sendto(bytes(message, MSG_ENC), (DST_IP, PORT))
     clientsocket.close()
     print('Exiting program')

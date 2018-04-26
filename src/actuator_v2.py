@@ -18,35 +18,34 @@ PORT = 5005
 SNT_MSG = 'hello' # The hello message
 MSG_ENC = 'UTF-8' # Message encoding.
 
-# Sets the state of the light. 1 for on, 0 for off. Uses the received data.
-def lightState(pin, data):
-    if data == '1':
-        GPIO.output(pin, HIGH)
-    elif data == '0':
-        GPIO.output(pin, LOW)
-
 # Thread1, listens on UDP data.
 def listenonUDP(clientsocket):
     lock = threading.Lock()
     while True:
         try:
+            lock.acquire()
             data = clientsocket.recv(1024)
-            if data.decode(MSG_ENC) == '1':
-                lightState(7, data.decode(MSG_ENC))
+            data = data.decode(MSG_ENC)
+            lock.release()
+            if data == '1':
+                GPIO.output(7, HIGH)
                 timer = time.time() # Starts a timer. Used for determining when to light the second light.
                 while True:
                     if time.time() - timer >= 5:
-                        lightState(11, '1')
+                        GPIO.output(11, HIGH)
                         try:
+                            lock.acquire()
                             data = clientsocket.recv(1024)
-                            if data.decode(MSG_ENC) == '0':
+                            data = data.decode(MSG_ENC)
+                            lock.release()
+                            if data == '0':
                                 break
                         except:
                             pass
         except:
             pass
-        lightState(7, '0')
-        lightState(11, '0')
+        GPIO.output(7, LOW)
+        GPIO.output(11, LOW)
 
 # Thread2, sends hello packets.
 def sendUDP(clientsocket):

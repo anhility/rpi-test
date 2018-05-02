@@ -148,7 +148,7 @@ def loopSendHello():
     # Sends hello packets on a timer
     global TIMER_HELLO
     lock = threading.Lock()
-    if time() - TIMER_HELLO > T_HELLO_UPDATE:
+    if time.time() - TIMER_HELLO > T_HELLO_UPDATE:
             lock.acquire()
             sendUDP(HELLO)
             lock.release()

@@ -18,6 +18,8 @@ PORT = 5005
 SNT_MSG = 'hello' # The hello message
 MSG_ENC = 'UTF-8' # Message encoding.
 
+D_TIME = 4 # Maximum dead time in seconds.
+
 
 # Flashes lights. Used in conjunction with dead timer.
 # If the timer exceeds threshold, flash lights.
@@ -29,18 +31,21 @@ def lightFlash():
 
 # Listens on UDP packets and returns the decoded data, as long as it's from the right IP and port.
 def listenonUDP(clientsocket):
+    lock = threading.Lock()
     try:
+        lock.acquire()
         data, (address, port) = clientsocket.recvfrom(1024)
+        lock.release()
         if str(address) == DST_IP and int(port) == PORT:
-            return data.decode(MSG_ENC)
+            return data.decode(MSG_ENC) # return decoded data for use in the function lightState.
         else:
-            return 255
-    except KeyboardInterrupt:
+            return '255'
+    except KeyboardInterrupt: # Catches keyboard interruption. CTRL + C, and exits.
         clientsocket.clean()
         GPIO.cleanup()
         sys.exit()
     except:
-        return 255
+        return '255'
 
 # Thread1, lights LEDs.
 def lightState(clientsocket):
@@ -49,10 +54,15 @@ def lightState(clientsocket):
                     # 1 means a 1 has already been received.
     deadtimer = time.time()   # Used for printing messages on screen if timer gets too great.
     lighttimer = 0.0
+
+    # This loop runs continously. It checks the data coming from a socket and decides
+    # what to do with it. If there's too long of a delay between packets, a LED will flash
+    # until a packet is received. If the system receives a 1, it lights one LED and if
+    # more than 5 seconds pass and the system hasn't recieved a 0, then it turns on the second LED.
     while True:
-        data = listenonUDP(clientsocket)
-        if data == 255 and time.time() - deadtimer >= 4:
-            lightFlash()
+        data = listenonUDP(clientsocket) # Calls the function and returns strings. 255 == no data from socket.
+        if data == '255' and time.time() - deadtimer >= D_TIME:
+            lightFlash()                # Flashes light if dead timer is
         elif data == '1' and flag == 0:
             flag = 1
             lighttimer = time.time()
@@ -67,6 +77,8 @@ def lightState(clientsocket):
             GPIO.output(7, LOW)
             GPIO.output(11, LOW)
         elif data == '0' and flag == 0:
+            deadtimer = time.time()
+        elif data == 'hello':
             deadtimer = time.time()
 
         if time.time() - lighttimer > 5 and flag == 1:
@@ -102,4 +114,13 @@ def main():
     # Starts the threads.
     t1.start()
     t2.start()
+
+    while True:
+        print('If you want to exit the program, type quit')
+        data = input()
+        if data == 'quit':
+            GPIO.cleanup()
+            clientsocket.clean()
+            sys.exit()
+
 main()

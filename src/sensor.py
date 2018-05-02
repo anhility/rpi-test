@@ -202,6 +202,6 @@ def main():
     t1.start()
     t2.start()
 
-if __name__ == "__sensor__":
-    print("Sensor activated")
-    main()
+
+print("Sensor activated")
+main()

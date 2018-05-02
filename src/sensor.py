@@ -88,9 +88,9 @@ def readTemp():
     global STATE
     
     f = open(temp_sensor, 'r')
-    temp_c = float((f.readlines())[1].lstrip(-5)) / 1000.0
+    temp_c = float(((f.readlines())[1])[-5:]) / 1000.0
     f.close()
-    
+    print(temp_c)
     if temp_c > MAX_TEMP and STATE == False:
         STATE = True
     elif temp_c <= MAX_TEMP and STATE == True:

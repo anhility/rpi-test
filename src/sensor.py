@@ -58,10 +58,7 @@ def sendUDP(data):
 
 def onUDPReceive():
     try:
-        lock = threading.Lock()
-        lock.acquire()
         data, (recvIP, recvPort) = SKT.recvfrom(1024)
-        lock.release()
         if str(recvIP) == IP_TRG and int(recvPort) == UDP_PORT:
             global UDP_MSG
             UDP_MSG = data.decode(MSG_ENC)

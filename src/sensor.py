@@ -37,9 +37,6 @@ MAX_TEMP        = 26            # Max temperature before changing state to True
 PIN_LED         = 17            # BCM pin number for LED
 RAND_MOD        = 1             # Modulo for randrange where n >= 1.
 
-### Threading ###
-lock = threading.Lock()         # Thread lock
-
 ### Error Flags ###
 ERR_A_DEAD      = False         # If Actuator is dead
 
@@ -53,17 +50,18 @@ temp_sensor = '/sys/bus/w1/devices/28-000009367a30/w1_slave'
 ### Functions ###
 
 def sendUDP(data):
-    #lock.release()
-    lock.acquire()
+    lock_send = threading.Lock()
+    lock_send.acquire()
     SKT.sendto(bytes(data, MSG_ENC), (IP_TRG, UDP_PORT))
-    lock.release()
+    lock_send.release()
     return
 
 def onUDPReceive():
     try:
-        lock.acquire()
+        lock_listen = threading.Lock()
+        lock_listen.acquire()
         data, (recvIP, recvPort) = SKT.recvfrom(1024)
-        lock.release()
+        lock_listen.release()
         if str(recvIP) == IP_TRG and int(recvPort) == UDP_PORT:
             global UDP_MSG
             UDP_MSG = data.decode(MSG_ENC)
@@ -119,7 +117,6 @@ def sendState(state, num = None):
 
 def loopMain():
     # Main loop
-    #lock = threading.Lock()
     while True:
         
         compareState = STATE
@@ -145,19 +142,14 @@ def loopMain():
 
         # send state
         if compareState != STATE:
-            #lock.acquire()
             sendState(STATE, 3)
-            #lock.release()
 
 
 def loopSendHello():
     # Sends hello packets on a timer
     global TIMER_HELLO
-    #lock = threading.Lock()
     if time.time() - TIMER_HELLO > T_HELLO_UPDATE:
-            #lock.acquire()
             sendUDP(HELLO)
-            #lock.release()
             TIMER_HELLO = time.time()
 
 ### Main Function ###

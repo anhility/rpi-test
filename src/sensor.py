@@ -50,17 +50,14 @@ temp_sensor = '/sys/bus/w1/devices/28-000009367a30/w1_slave'
 ### Functions ###
 
 def sendUDP(data):
-    lock_send = threading.Lock()
-    lock_send.acquire()
+    lock = threading.Lock()
+    lock.acquire()
     SKT.sendto(bytes(data, MSG_ENC), (IP_TRG, UDP_PORT))
-    lock_send.release()
+    lock.release()
     return
 
 def onUDPReceive():
-    lock_listen = threading.Lock()
-    lock_listen.acquire()
     data, (recvIP, recvPort) = SKT.recvfrom(1024)
-    lock_listen.release()
     if str(recvIP) == IP_TRG and int(recvPort) == UDP_PORT:
         global UDP_MSG
         UDP_MSG = data.decode(MSG_ENC)

@@ -139,7 +139,7 @@ def loopMain():
 
         # send state
         if compareState != STATE:
-            lock.aquire()
+            lock.acquire()
             sendState(STATE, 3)
             lock.release()
 

@@ -22,9 +22,9 @@ MSG_ENC = 'UTF-8' # Message encoding.
 # Flashes lights. Used in conjunction with dead timer.
 # If the timer exceeds threshold, flash lights.
 def lightFlash():
-    GPIO.output(HIGH)
+    GPIO.output(11, HIGH)
     time.sleep(0.2)
-    GPIO.output(LOW)
+    GPIO.output(11, LOW)
     time.sleep(0.2)
 
 # Listens on UDP packets and returns the decoded data, as long as it's from the right IP and port.

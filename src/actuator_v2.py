@@ -18,11 +18,14 @@ PORT = 5005
 SNT_MSG = 'hello' # The hello message
 MSG_ENC = 'UTF-8' # Message encoding.
 
-# Check socket
-# If new data exists, reset dead timer.
-# # Check what kind of data
-# # Requires a flag to check if there's new data.
-# #
+
+# Flashes lights. Used in conjunction with dead timer.
+# If the timer exceeds threshold, flash lights.
+def lightFlash():
+    GPIO.output(HIGH)
+    time.sleep(0.2)
+    GPIO.output(LOW)
+    time.sleep(0.2)
 
 # Listens on UDP packets and returns the decoded data, as long as it's from the right IP and port.
 def listenonUDP(clientsocket):
@@ -38,17 +41,19 @@ def listenonUDP(clientsocket):
         sys.exit()
     except:
         return 255
+
 # Thread1, lights LEDs.
 def lightState(clientsocket):
     lock = threading.Lock()
-    flag = 0        # Used for if statements, so they don't mess up the timers. 1 means a 1 has already been received.
+    flag = 0        # Used for if statements, so they don't mess up the timers. 
+                    # 1 means a 1 has already been received.
     deadtimer = time.time()   # Used for printing messages on screen if timer gets too great.
     lighttimer = 0.0
     while True:
         data = listenonUDP(clientsocket)
-        if data != 255:
-            deadtimer = time.time()
-        if data == '1' and flag == 0:
+        if data == 255 and time.time() - deadtimer >= 4:
+            lightFlash()
+        elif data == '1' and flag == 0:
             flag = 1
             lighttimer = time.time()
             GPIO.output(7, HIGH)
@@ -59,10 +64,7 @@ def lightState(clientsocket):
             GPIO.output(11, LOW)
         elif time.time() - lighttimer > 5 and flag == 1:
             GPIO.output(11, HIGH)
-        # Light on pin 11, still left to fix.
-        if time.time() - deadtimer >= 4.0:
-            print('No connection to the other pi')
-            deadtimer = time.time()
+            
 
 # Thread2, sends hello packets.
 def sendUDP(clientsocket):
@@ -93,5 +95,4 @@ def main():
     # Starts the threads.
     t1.start()
     t2.start()
-
 main()

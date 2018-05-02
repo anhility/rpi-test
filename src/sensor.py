@@ -37,6 +37,9 @@ MAX_TEMP        = 26            # Max temperature before changing state to True
 PIN_LED         = 17            # BCM pin number for LED
 RAND_MOD        = 1             # Modulo for randrange where n >= 1.
 
+### Threading ###
+lock = threading.Lock()         # Thread lock
+
 ### Error Flags ###
 ERR_A_DEAD      = False         # If Actuator is dead
 
@@ -50,7 +53,7 @@ temp_sensor = '/sys/bus/w1/devices/28-000009367a30/w1_slave'
 ### Functions ###
 
 def sendUDP(data):
-    lock = threading.Lock()
+    #lock.release()
     lock.acquire()
     SKT.sendto(bytes(data, MSG_ENC), (IP_TRG, UDP_PORT))
     lock.release()

@@ -73,7 +73,7 @@ def listenUDP():
     onUDPReceive()
     
     if UDP_MSG == HELLO:
-        TIMER_DEAD = time()
+        TIMER_DEAD = time.time()
         ERR_A_DEAD = False
     elif UDP_MSG == GET_STATE:
         sendState(STATE, PKT_COPY)
@@ -152,7 +152,7 @@ def loopSendHello():
             lock.acquire()
             sendUDP(HELLO)
             lock.release()
-            TIMER_HELLO = time()
+            TIMER_HELLO = time.time()
 
 ### Main Function ###
 def main():
@@ -160,7 +160,7 @@ def main():
     ### Initialization ###
     
     global SKT, TIMER_HELLO, TIMER_STATE, TIMER_DEAD
-    initTime    = time()
+    initTime    = time.time()
     TIMER_HELLO = initTime
     TIMER_STATE = initTime
     TIMER_DEAD  = initTime

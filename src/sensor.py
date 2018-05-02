@@ -50,24 +50,28 @@ temp_sensor = '/sys/bus/w1/devices/28-000009367a30/w1_slave'
 ### Functions ###
 
 def sendUDP(data):
-    lock = threading.Lock()
-    lock.acquire()
+    lock_send = threading.Lock()
+    lock_send.acquire()
     SKT.sendto(bytes(data, MSG_ENC), (IP_TRG, UDP_PORT))
-    lock.release()
+    lock_send.release()
     return
 
 def onUDPReceive():
-    data, (recvIP, recvPort) = SKT.recvfrom(1024)
-    if str(recvIP) == IP_TRG and int(recvPort) == UDP_PORT:
-        global UDP_MSG
-        UDP_MSG = data.decode(MSG_ENC)
-    else:
-        return
-#    except KeyboardInterrupt:
-#        SKT.clean()
-#        GPIO.cleanup()
-#        print("Script terminated.")
-#        sys.exit()
+    try:
+        lock_listen = threading.Lock()
+        lock_listen.acquire()
+        data, (recvIP, recvPort) = SKT.recvfrom(1024)
+        lock_listen.release()
+        if str(recvIP) == IP_TRG and int(recvPort) == UDP_PORT:
+            global UDP_MSG
+            UDP_MSG = data.decode(MSG_ENC)
+        else:
+            return
+    except KeyboardInterrupt:
+        SKT.clean()
+        GPIO.cleanup()
+        print("Script terminated.")
+        sys.exit()
 
 def listenUDP():
     global UDP_MSG, TIMER_DEAD, ERR_A_DEAD

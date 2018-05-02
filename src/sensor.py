@@ -78,7 +78,7 @@ def listenUDP():
     elif UDP_MSG == GET_STATE:
         sendState(STATE, PKT_COPY)
         ERR_A_DEAD = False
-    elif time() - TIMER_DEAD > T_DEAD_MAX:
+    elif time.time() - TIMER_DEAD > T_DEAD_MAX:
         ERR_A_DEAD = True
     
     UDP_MSG = None
@@ -123,14 +123,14 @@ def loopMain():
         lock.release()
         
         # read temp
-        if time() - TIMER_STATE > T_STATE_UPDATE:
+        if time.time() - TIMER_STATE > T_STATE_UPDATE:
             readTemp()
             
         # update lamp
         if compareState != STATE and ERR_A_DEAD == False:
             updateLamp(STATE)
         elif ERR_A_DEAD == True:
-            if (time() - TIMER_DEAD)%1 > 0.5:
+            if (time.time() - TIMER_DEAD)%1 > 0.5:
                 updateLamp(True)
             else:
                 updateLamp(False)

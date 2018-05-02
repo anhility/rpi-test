@@ -56,13 +56,20 @@ def lightState(clientsocket):
         elif data == '1' and flag == 0:
             flag = 1
             lighttimer = time.time()
+            deadtimer = time.time()
             GPIO.output(7, HIGH)
+        elif data == '1' and flag == 1:
+            deadtimer = time.time()
         elif data == '0' and flag == 1:
             flag = 0
             lighttimer = time.time()
+            deadtimer = time.time()
             GPIO.output(7, LOW)
             GPIO.output(11, LOW)
-        elif time.time() - lighttimer > 5 and flag == 1:
+        elif data == '0' and flag == 0:
+            deadtimer = time.time()
+
+        if time.time() - lighttimer > 5 and flag == 1:
             GPIO.output(11, HIGH)
             
 

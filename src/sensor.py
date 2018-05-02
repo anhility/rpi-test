@@ -199,9 +199,9 @@ def main():
     
     ## Creation and start of threads ##
     # Separate thread to send hello message uninterrupted
-    t1 = threading.Thread(target=loopSendHello)
+    t1 = threading.Thread(target=loopSendHello, name="Thread-Hello")
     # Main loop thread
-    t2 = threading.Thread(target=loopMain)
+    t2 = threading.Thread(target=loopMain, name="Thread-Loop")
     # Start of threads
     t1.start()
     t2.start()

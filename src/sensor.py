@@ -118,7 +118,7 @@ def loopMain():
         time.sleep(POLL_TIME / 1000.0)
         
         # listen
-        lock.aquire()
+        lock.acquire()
         listenUDP()
         lock.release()
         

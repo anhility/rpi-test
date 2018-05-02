@@ -50,7 +50,10 @@ temp_sensor = '/sys/bus/w1/devices/28-000009367a30/w1_slave'
 ### Functions ###
 
 def sendUDP(data):
+    lock = threading.Lock()
+    lock.acquire()
     SKT.sendto(bytes(data, MSG_ENC), (IP_TRG, UDP_PORT))
+    lock.release()
     return
 
 def onUDPReceive():
@@ -114,7 +117,7 @@ def sendState(state, num = None):
 
 def loopMain():
     # Main loop
-    lock = threading.Lock()
+    #lock = threading.Lock()
     while True:
         
         compareState = STATE
@@ -140,19 +143,19 @@ def loopMain():
 
         # send state
         if compareState != STATE:
-            lock.acquire()
+            #lock.acquire()
             sendState(STATE, 3)
-            lock.release()
+            #lock.release()
 
 
 def loopSendHello():
     # Sends hello packets on a timer
     global TIMER_HELLO
-    lock = threading.Lock()
+    #lock = threading.Lock()
     if time.time() - TIMER_HELLO > T_HELLO_UPDATE:
-            lock.acquire()
+            #lock.acquire()
             sendUDP(HELLO)
-            lock.release()
+            #lock.release()
             TIMER_HELLO = time.time()
 
 ### Main Function ###

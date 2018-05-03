@@ -76,6 +76,8 @@ def onUDPReceive():
         GPIO.cleanup()
         print("Script terminated.")
         sys.exit()
+    except:
+        return
 
 def listenUDP():
     global UDP_MSG, TIMER_DEAD, ERR_A_DEAD

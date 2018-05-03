@@ -16,6 +16,7 @@ UDP_PORT    = 5005              # Port to listen/send on
 UDP_MSG     = None              # Message varaible
 MSG_ENC     = 'UTF-8'           # Message encoding
 PKT_COPY    = 3                 # Amount of copies to send for state update
+SKT_TIMEOUT = 0.1               # Timeout for listening
 
 ## Timers ##
 TIMER_HELLO     = None          # Timer for sending hello
@@ -177,7 +178,7 @@ def main():
     ## Socket Setup ##
     SKT = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     SKT.bind((IP_SRC, UDP_PORT))
-    SKT.settimeout(0.1)
+    SKT.settimeout(SKT_TIMEOUT)
     
     ## GPIO init ##
     GPIO.setmode(GPIO.BCM)

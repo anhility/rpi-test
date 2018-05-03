@@ -37,8 +37,6 @@ MAX_TEMP        = 26            # Max temperature before changing state to True
 PIN_LED         = 17            # BCM pin number for LED
 RAND_MOD        = 1             # Modulo for randrange where n >= 1.
 
-lock = threading.Lock()
-
 ### Error Flags ###
 ERR_A_DEAD      = False         # If Actuator is dead
 
@@ -52,7 +50,8 @@ temp_sensor = '/sys/bus/w1/devices/28-000009367a30/w1_slave'
 ### Functions ###
 
 def sendUDP(data):
-    lock.acquire(True, 0.1)
+    lock = threading.Lock()
+    lock.acquire()
     print("Send lock")
     SKT.sendto(bytes(data, MSG_ENC), (IP_TRG, UDP_PORT))
     lock.release()
@@ -61,7 +60,8 @@ def sendUDP(data):
 
 def onUDPReceive():
     try:
-        lock.acquire(True, 0.1)
+        lock = threading.Lock()
+        lock.acquire()
         print("Listen lock")
         data, conn_address = SKT.recvfrom(1024)
         lock.release()
@@ -170,7 +170,7 @@ def main():
     ## Socket Setup ##
     SKT = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     SKT.bind((IP_SRC, UDP_PORT))
-    SKT.setblocking(True)
+    SKT.setdefaulttimeout(0.1)
     
     ## GPIO init ##
     GPIO.setmode(GPIO.BCM)

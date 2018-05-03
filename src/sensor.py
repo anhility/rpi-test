@@ -60,7 +60,7 @@ def sendUDP(data):
 
 def onUDPReceive():
     try:
-        lock = threading.Lock()
+        lock = threading.RLock()
         lock.acquire()
         print("Listen lock")
         data, conn_address = SKT.recvfrom(1024)
@@ -135,16 +135,7 @@ def loopMain():
         if time.time() - TIMER_STATE > T_STATE_UPDATE:
             readTemp()
             
-        # update lamp
-        if compareState != STATE and ERR_A_DEAD == False:
-            updateLamp(STATE)
-        elif ERR_A_DEAD == True:
-            if (time.time() - TIMER_DEAD)%1 > 0.5:
-                updateLamp(True)
-            else:
-                updateLamp(False)
-        elif ERR_A_DEAD == False:
-            updateLamp(STATE)
+
 
         # send state
         if compareState != STATE:
@@ -157,6 +148,19 @@ def loopSendHello():
     if time.time() - TIMER_HELLO > T_HELLO_UPDATE:
             sendUDP(HELLO)
             TIMER_HELLO = time.time()
+
+def loopLampUpdate():
+    # update lamp
+    global compareState
+    if compareState != STATE and ERR_A_DEAD == False:
+        updateLamp(STATE)
+    elif ERR_A_DEAD == True:
+        if (time.time() - TIMER_DEAD)%1 > 0.5:
+            updateLamp(True)
+        else:
+            updateLamp(False)
+    elif ERR_A_DEAD == False:
+        updateLamp(STATE)
 
 ### Main Function ###
 def main():
@@ -202,9 +206,12 @@ def main():
     t1 = threading.Thread(target=loopSendHello, name="Thread-Hello")
     # Main loop thread
     t2 = threading.Thread(target=loopMain, name="Thread-Loop")
+    # Loop for lamp control
+    t3 = threading.Thread(target=loopLampUpdate, name="Thread-Lamp")
     # Start of threads
     t1.start()
     t2.start()
+    t3.start()
 
 
 print("Sensor activated")

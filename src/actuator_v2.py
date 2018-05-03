@@ -20,7 +20,6 @@ MSG_ENC = 'UTF-8' # Message encoding.
 
 D_TIME = 4 # Maximum dead time in seconds.
 
-
 # Flashes lights. Used in conjunction with dead timer.
 # If the timer exceeds threshold, flash lights.
 def lightFlash():
@@ -41,9 +40,7 @@ def listenonUDP(clientsocket):
         else:
             return '255'
     except KeyboardInterrupt: # Catches keyboard interruption. CTRL + C, and exits.
-        clientsocket.clean()
-        GPIO.cleanup()
-        sys.exit()
+        pass
     except:
         return '255'
 
@@ -63,20 +60,20 @@ def lightState(clientsocket):
         data = listenonUDP(clientsocket) # Calls the function and returns strings. 255 == no data from socket.
         if data == '255' and time.time() - deadtimer >= D_TIME:
             lightFlash()                # Flashes light if dead timer is
-        elif data == '1' and flag == 0:
+        elif data == 'True' and flag == 0:
             flag = 1
             lighttimer = time.time()
             deadtimer = time.time()
             GPIO.output(7, HIGH)
-        elif data == '1' and flag == 1:
+        elif data == 'True' and flag == 1:
             deadtimer = time.time()
-        elif data == '0' and flag == 1:
+        elif data == 'False' and flag == 1:
             flag = 0
             lighttimer = time.time()
             deadtimer = time.time()
             GPIO.output(7, LOW)
             GPIO.output(11, LOW)
-        elif data == '0' and flag == 0:
+        elif data == 'False' and flag == 0:
             deadtimer = time.time()
         elif data == 'hello':
             deadtimer = time.time()
@@ -89,6 +86,7 @@ def lightState(clientsocket):
 def sendUDP(clientsocket):
     lock = threading.Lock()
     timer = time.time()
+    clientsocket.sendto(bytes('getState', MSG_ENC), (DST_IP, PORT))
     while True:
         if time.time() - timer >= 0.5:
             lock.acquire()
@@ -112,7 +110,9 @@ def main():
     t2 = threading.Thread(target = sendUDP, args = (clientsocket,))
 
     # Starts the threads.
-    t1.start()
+    t1.setDaemon(True)
+    t2.setDaemon(True)
+    t1.start()  
     t2.start()
 
     while True:
@@ -120,7 +120,6 @@ def main():
         data = input()
         if data == 'quit':
             GPIO.cleanup()
-            clientsocket.clean()
-            sys.exit()
-
+            clientsocket.close()
+            exit()
 main()

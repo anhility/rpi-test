@@ -170,7 +170,7 @@ def main():
     ## Socket Setup ##
     SKT = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     SKT.bind((IP_SRC, UDP_PORT))
-    SKT.setdefaulttimeout(0.1)
+    SKT.settimeout(0.1)
     
     ## GPIO init ##
     GPIO.setmode(GPIO.BCM)

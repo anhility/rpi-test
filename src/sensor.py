@@ -60,9 +60,10 @@ def sendUDP(data):
 def onUDPReceive():
     try:
         lock.acquire(True, 0.1)
-        data, (recvIP, recvPort) = SKT.recvfrom(1024)
+        conn, conn_address = SKT.accept()
+        data = conn.recv(1024)
         lock.release()
-        if str(recvIP) == IP_TRG and int(recvPort) == UDP_PORT:
+        if str(conn_address[0]) == IP_TRG and int(conn_address[1]) == UDP_PORT:
             global UDP_MSG
             UDP_MSG = data.decode(MSG_ENC)
         else:

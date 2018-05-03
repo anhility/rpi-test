@@ -134,9 +134,7 @@ def loopMain():
         # read temp
         if time.time() - TIMER_STATE > T_STATE_UPDATE:
             readTemp()
-            
-
-
+        
         # send state
         if compareState != STATE:
             sendState(STATE, 3)
@@ -151,16 +149,19 @@ def loopSendHello():
 
 def loopLampUpdate():
     # update lamp
-    global compareState
-    if compareState != STATE and ERR_A_DEAD == False:
-        updateLamp(STATE)
-    elif ERR_A_DEAD == True:
-        if (time.time() - TIMER_DEAD)%1 > 0.5:
-            updateLamp(True)
-        else:
-            updateLamp(False)
-    elif ERR_A_DEAD == False:
-        updateLamp(STATE)
+    while True:
+        compareState = STATE
+        time.sleep(POLL_TIME / 1000.0)
+        
+        if compareState != STATE and ERR_A_DEAD == False:
+            updateLamp(STATE)
+        elif ERR_A_DEAD == True:
+            if (time.time() - TIMER_DEAD)%1 > 0.5:
+                updateLamp(True)
+            else:
+                updateLamp(False)
+        elif ERR_A_DEAD == False:
+            updateLamp(STATE)
 
 ### Main Function ###
 def main():

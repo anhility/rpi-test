@@ -117,8 +117,17 @@ def main():
 
     while True:
         print('If you want to exit the program, type quit')
-        data = input()
-        if data == 'quit':
+        try:
+            data = input()
+            if data == 'quit':
+                GPIO.cleanup()
+                clientsocket.close()
+                exit()
+        except KeyboardInterrupt:
+            GPIO.cleanup()
+            clientsocket.close()
+            exit()
+        except EOFError:
             GPIO.cleanup()
             clientsocket.close()
             exit()

@@ -1,28 +1,29 @@
 '''
 Created on 14 apr. 2018
 
-@author: Mike & Dirk
+@author: Mike
 '''
 
-import time
-#TODO: Import & implement SOCKET/UDP
-from udp import *
-#TODO: Import & implement rpi.gpio
-from gpio import *
+import os, time, socket, threading, random, sys
+import RPi.GPIO as GPIO
 
 ### Global Variables ###
 ## Connectivity ##
-UDP         = None              # UDP anchor
-TARGET_IP   = "10.35.0.101"     # IP to actuator
+SKT         = None              # Socket anchor
+IP_SRC      = "10.34.0.1"       # Local IP
+IP_TRG      = "10.35.0.1"       # IP to actuator
 UDP_PORT    = 5005              # Port to listen/send on
-UDP_MSG     = None              # Received message
+UDP_MSG     = None              # Message varaible
+MSG_ENC     = 'UTF-8'           # Message encoding
+PKT_COPY    = 3                 # Amount of copies to send for state update
+SKT_TIMEOUT = 0.1               # Timeout for listening
 
 ## Timers ##
 TIMER_HELLO     = None          # Timer for sending hello
-T_HELLO_UPDATE  = 0.1           # Update frequency
+T_HELLO_UPDATE  = 0.5           # Update frequency
 
 TIMER_STATE     = None          # Timer for state check from thermometer
-T_STATE_UPDATE  = 0.5           # Update frequency
+T_STATE_UPDATE  = 0.1           # Update frequency
 
 TIMER_DEAD      = None          # Timer for dead check of actuator
 T_DEAD_UPDATE   = 0.1           # Update frequency
@@ -34,28 +35,158 @@ HELLO           = "hello"       # Hello message
 GET_STATE       = "getState"    # GetState message
 POLL_TIME       = 10            # ms to wait between each loop cycle
 MAX_TEMP        = 26            # Max temperature before changing state to True
-DEBUG           = True          # Set to true for debug info
+PIN_LED         = 17            # BCM pin number for LED
+RAND_MOD        = 1             # Modulo for randrange where n >= 1.
 
-### Errors ###
-ERR_A_DEAD      = False         # Actuator is dead
+### Error Flags ###
+ERR_A_DEAD      = False         # If Actuator is dead
+
+### Temperature file manipulation ###
+# Loading drivers for check of temperature file
+os.system('modprobe w1-gpio')
+os.system('modprobe w1-therm')
+# Location of temperature file
+temp_sensor = '/sys/bus/w1/devices/28-000009367a30/w1_slave'
 
 ### Functions ###
-def init():
+
+def sendUDP(data):
+    lock = threading.Lock()
+    lock.acquire()
+    #print("Send lock")
+    SKT.sendto(bytes(data, MSG_ENC), (IP_TRG, UDP_PORT))
+    lock.release()
+    #print("Send Release")
+    return
+
+def onUDPReceive():
+    try:
+        lock = threading.RLock()
+        lock.acquire()
+        #print("Listen lock")
+        data, conn_address = SKT.recvfrom(1024)
+        lock.release()
+        #print("Listen release")
+        if str(conn_address[0]) == IP_TRG and int(conn_address[1]) == UDP_PORT:
+            global UDP_MSG
+            UDP_MSG = data.decode(MSG_ENC)
+        else:
+            return
+    except:
+        return
+
+def listenUDP():
+    global UDP_MSG, TIMER_DEAD, ERR_A_DEAD
     
-    global UDP, TIMER_HELLO, TIMER_STATE, TIMER_DEAD
-    initTime    = time()
+    onUDPReceive()
+    
+    if UDP_MSG == HELLO:
+        TIMER_DEAD = time.time()
+        ERR_A_DEAD = False
+    elif UDP_MSG == GET_STATE:
+        sendState(STATE, PKT_COPY)
+        ERR_A_DEAD = False
+    elif time.time() - TIMER_DEAD > T_DEAD_MAX:
+        ERR_A_DEAD = True
+    
+    UDP_MSG = None
+    return
+
+def readTemp():
+    global STATE
+    
+    f = open(temp_sensor, 'r')
+    temp_c = float(((f.readlines())[1])[-6:]) / 1000.0
+    f.close()
+    print(temp_c)
+    if temp_c > MAX_TEMP and STATE == False:
+        STATE = True
+    elif temp_c <= MAX_TEMP and STATE == True:
+        STATE = False
+    return
+
+def updateLamp(state):
+    GPIO.output(PIN_LED, state)
+    return
+
+def sendState(state, num = None):
+    if num == None:
+        num = 1
+    for i in range(num):
+        if random.randrange(RAND_MOD) == 0:
+            #print(str(state))
+            sendUDP(str(state))
+    return
+
+def loopMain():
+    # Main loop
+    while True:
+        
+        compareState = STATE
+        time.sleep(POLL_TIME / 1000.0)
+        
+        # listen
+        listenUDP()
+        
+        # read temp
+        if time.time() - TIMER_STATE > T_STATE_UPDATE:
+            readTemp()
+        
+        # send state
+        if compareState != STATE:
+            sendState(STATE, 3)
+
+
+def loopSendHello():
+    # Sends hello packets on a timer
+    while True:
+        global TIMER_HELLO
+        if time.time() - TIMER_HELLO > T_HELLO_UPDATE:
+                sendUDP(HELLO)
+                TIMER_HELLO = time.time()
+                #print("Hello sent")
+
+def loopLampUpdate():
+    # update lamp
+    while True:
+        compareState = STATE
+        time.sleep(POLL_TIME / 1000.0)
+        
+        if compareState != STATE and ERR_A_DEAD == False:
+            updateLamp(STATE)
+        elif ERR_A_DEAD == True:
+            if (time.time() - TIMER_DEAD)%1 > 0.5:
+                updateLamp(True)
+            else:
+                updateLamp(False)
+        elif ERR_A_DEAD == False:
+            updateLamp(STATE)
+
+### Main Function ###
+def main():
+    
+    ### Initialization ###
+    
+    global SKT, TIMER_HELLO, TIMER_STATE, TIMER_DEAD
+    initTime    = time.time()
     TIMER_HELLO = initTime
     TIMER_STATE = initTime
     TIMER_DEAD  = initTime
 
-    ## UDP Setup ##
-    #TODO: Changet to SOCKET
-    UDP = UDPSocket()
-    UDP.begin(UDP_PORT)
+    ## Socket Setup ##
+    SKT = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    SKT.bind((IP_SRC, UDP_PORT))
+    SKT.settimeout(SKT_TIMEOUT)
+    
+    ## GPIO init ##
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setwarnings(False)
+    GPIO.setup(PIN_LED, GPIO.OUT)
+    GPIO.output(PIN_LED, False)
     
     ## Zeroize output ##
-    updateLamp(False)
-    sendState(False, 3)
+    GPIO.output(PIN_LED, False)
+    sendState(False, PKT_COPY)
     
     ## Send hello ##
     sendUDP(HELLO)
@@ -67,109 +198,34 @@ def init():
     updateLamp(STATE)
     
     ## Send State ##
-    sendState(STATE, 3)
+    sendState(STATE, PKT_COPY)
+    ### Initialization Complete ###
     
-    return
+    ## Creation and start of threads ##
+    # Separate thread to send hello message uninterrupted
+    t1 = threading.Thread(target=loopSendHello, name="Thread-Hello")
+    # Main loop thread
+    t2 = threading.Thread(target=loopMain, name="Thread-Loop")
+    # Loop for lamp control
+    t3 = threading.Thread(target=loopLampUpdate, name="Thread-Lamp")
+    # Start of deamons and threads
+    t1.setDaemon(True)
+    t2.setDaemon(True)
+    t3.setDaemon(True)
+    t1.start()
+    t2.start()
+    t3.start()
 
-#TODO: Add error output
-#def error(num):
-#    return
-
-def sendUDP(data):
-    UDP.send(TARGET_IP, UDP_PORT, data)
-    return
-
-def onUDPReceive(ip, port, data):
-    global UDP_MSG
-    UDP_MSG = data
-    return
-
-def listenUDP():
-    global UDP_MSG, TIMER_DEAD, ERR_A_DEAD
-    
-    UDP.onReceive(onUDPReceive)
-    
-    if UDP_MSG == HELLO:
-        TIMER_DEAD = time()
-        ERR_A_DEAD = False
-    elif UDP_MSG == GET_STATE:
-        sendState(STATE, 3)
-        ERR_A_DEAD = False
-    elif time() - TIMER_DEAD > T_DEAD_MAX:
-        ERR_A_DEAD = True
-    
-    #print UDP_MSG
-    UDP_MSG = None
-    return
-
-def readTemp():
-    global STATE
-    #TODO: Change to valid gpio
-    if float(customRead(0)) > MAX_TEMP and STATE == False:
-        STATE = True
-    elif float(customRead(0)) <= MAX_TEMP and STATE == True:
-        STATE = False
-    return
-
-def updateLamp(state):
-    #TODO: Change to valid gpio
-    if state == False:
-        digitalWrite(1, LOW)
-    else:
-        digitalWrite(1, HIGH)
-    return
-
-def sendState(state, num):
-    for i in range(num - 1):
-        if state == False:
-            sendUDP("false")
-        else:
-            sendUDP("true")
-    return
-
-### Main Function ###
-def main():
-    #TODO: Change to valid gpio
-    pinMode(0,IN)    # Read temperature
-    pinMode(1, OUT) # Signal to lamp
-    
-    ## Initialization ##
-    init()
-    
-    ## Main loop ##
+    # Exit gracefully with C^ or D^
     while True:
-        
-        compareState = STATE
-        time.sleep(POLL_TIME / 1000.0)
-    
-        # Send hello
-        if time() - TIMER_HELLO > T_HELLO_UPDATE:
-            sendUDP(HELLO)
-        # listen
-        listenUDP()
-        
-        # read temp
-        if time() - TIMER_STATE > T_STATE_UPDATE:
-            readTemp()
-            
-        # update lamp
-        #print "Uptime: %s, State: %s, Actuator: %s" % (uptime(), STATE, ERR_A_DEAD)
-        
-        if compareState != STATE and ERR_A_DEAD == False:
-            updateLamp(STATE)
-        elif ERR_A_DEAD == True:
-            if (time() - TIMER_DEAD)%1 > 0.5:
-                updateLamp(True)
-            else:
-                updateLamp(False)
-        elif ERR_A_DEAD == False:
-            updateLamp(STATE)
+        try:
+            trash = input()
+        except (KeyboardInterrupt, EOFError) as err:
+            SKT.close()
+            GPIO.cleanup()
+            print("Script terminated.")
+            sys.exit()
 
-        # send state
-        if compareState != STATE:
-            sendState(STATE, 3)
-        
 
-if __name__ == "__sensor__":
-    print("Sensor activated")
-    main()
+print("Sensor activated")
+main()

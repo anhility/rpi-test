@@ -1,6 +1,3 @@
-#TODO: Implement SOCKET/UDP
-#TODO: Implement rpi.gpio
-
 import RPi.GPIO as GPIO
 import threading
 import time
@@ -28,7 +25,7 @@ GET_STATE = "getState"      # GetState message
 POLL_TIME = 10              # ms to wait between each loop cycle
 HIGH = GPIO.HIGH
 LOW = GPIO.LOW
-#TODO: Add debug output
+
 DEBUG = True                # Set to true for debug info
 
 ### Errors ###
@@ -51,7 +48,7 @@ def init():
     TIMER_DEAD  = initTime
 
     ## UDP Setup ##
-    #TODO: Change to SOCKET
+    
     #UDP = UDPSocket()
     #UDP.begin(UDP_PORT)
 
@@ -66,7 +63,7 @@ def init():
     
     return
 
-#TODO: Do some error output
+
 #def error(num):
 #    return
 
@@ -104,10 +101,10 @@ def listenUDP():
 
 def updateFan(state):
     if state == False:
-        #TODO: Change to valid gpio
+        
         customWrite(0, 0)
     else:
-        #TODO: Change to valid gpio
+        
         customWrite(0, 2)
     return
 
@@ -117,7 +114,7 @@ def customtimer(state)
 
 ### Main Function ###
 def main():
-    #TODO: Change to valid gpio
+    
     pinMode(0, OUT)            # Signal to light
     
     ## Initialization ##

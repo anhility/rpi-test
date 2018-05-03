@@ -75,9 +75,6 @@ def onUDPReceive():
     except KeyboardInterrupt:
         SKT.clean()
         GPIO.cleanup()
-        t1.exit()
-        t2.exit()
-        t3.exit()
         print("Script terminated.")
         sys.exit()
     except:

@@ -53,20 +53,20 @@ temp_sensor = '/sys/bus/w1/devices/28-000009367a30/w1_slave'
 def sendUDP(data):
     lock = threading.Lock()
     lock.acquire()
-    print("Send lock")
+    #print("Send lock")
     SKT.sendto(bytes(data, MSG_ENC), (IP_TRG, UDP_PORT))
     lock.release()
-    print("Send Release")
+    #print("Send Release")
     return
 
 def onUDPReceive():
     try:
         lock = threading.RLock()
         lock.acquire()
-        print("Listen lock")
+        #print("Listen lock")
         data, conn_address = SKT.recvfrom(1024)
         lock.release()
-        print("Listen release")
+        #print("Listen release")
         if str(conn_address[0]) == IP_TRG and int(conn_address[1]) == UDP_PORT:
             global UDP_MSG
             UDP_MSG = data.decode(MSG_ENC)
@@ -75,6 +75,9 @@ def onUDPReceive():
     except KeyboardInterrupt:
         SKT.clean()
         GPIO.cleanup()
+        t1.exit()
+        t2.exit()
+        t3.exit()
         print("Script terminated.")
         sys.exit()
     except:
@@ -101,7 +104,7 @@ def readTemp():
     global STATE
     
     f = open(temp_sensor, 'r')
-    temp_c = float(((f.readlines())[1])[-5:]) / 1000.0
+    temp_c = float(((f.readlines())[1])[-6:]) / 1000.0
     f.close()
     print(temp_c)
     if temp_c > MAX_TEMP and STATE == False:
@@ -119,7 +122,8 @@ def sendState(state, num = None):
         num = 1
     for i in range(num):
         if random.randrange(RAND_MOD) == 0:
-            sendUDP(state)
+            #print(str(state))
+            sendUDP(str(state))
     return
 
 def loopMain():
@@ -143,10 +147,12 @@ def loopMain():
 
 def loopSendHello():
     # Sends hello packets on a timer
-    global TIMER_HELLO
-    if time.time() - TIMER_HELLO > T_HELLO_UPDATE:
-            sendUDP(HELLO)
-            TIMER_HELLO = time.time()
+    while True:
+        global TIMER_HELLO
+        if time.time() - TIMER_HELLO > T_HELLO_UPDATE:
+                sendUDP(HELLO)
+                TIMER_HELLO = time.time()
+                #print("Hello sent")
 
 def loopLampUpdate():
     # update lamp

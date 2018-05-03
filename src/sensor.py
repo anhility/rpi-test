@@ -72,11 +72,6 @@ def onUDPReceive():
             UDP_MSG = data.decode(MSG_ENC)
         else:
             return
-    except KeyboardInterrupt:
-        SKT.clean()
-        GPIO.cleanup()
-        print("Script terminated.")
-        sys.exit()
     except:
         return
 
@@ -213,10 +208,23 @@ def main():
     t2 = threading.Thread(target=loopMain, name="Thread-Loop")
     # Loop for lamp control
     t3 = threading.Thread(target=loopLampUpdate, name="Thread-Lamp")
-    # Start of threads
+    # Start of deamons and threads
+    t1.setDaemon(True)
+    t2.setDaemon(True)
+    t3.setDaemon(True)
     t1.start()
     t2.start()
     t3.start()
+
+    # Exit gracefully with C^ or D^
+    while True:
+        try:
+            trash = input()
+        except (KeyboardInterrupt, EOFError) as err:
+            SKT.close()
+            GPIO.cleanup()
+            print("Script terminated.")
+            sys.exit()
 
 
 print("Sensor activated")

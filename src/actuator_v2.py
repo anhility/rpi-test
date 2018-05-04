@@ -20,8 +20,8 @@ MSG_ENC = 'UTF-8' # Message encoding.
 
 D_TIME = 4 # Maximum dead time in seconds.
 
-
-# lightFlash flashes lights. Used in conjunction with dead timer in thread1.
+# Flashes lights. Used in conjunction with dead timer.
+# If the timer exceeds threshold, flash lights.
 def lightFlash():
     GPIO.output(11, HIGH)
     time.sleep(0.2)
@@ -40,6 +40,8 @@ def listenonUDP(clientsocket):
             return data.decode(MSG_ENC) # return decoded data for use in the function lightState.
         else:
             return '255'
+    except KeyboardInterrupt: # Catches keyboard interruption. CTRL + C, and exits.
+        pass
     except:
         return '255'
 
@@ -58,20 +60,20 @@ def lightState(clientsocket):
         data = listenonUDP(clientsocket) # Calls the function and returns strings. 255 == no data from socket.
         if data == '255' and time.time() - deadtimer >= D_TIME:
             lightFlash()                # Flashes light if dead timer is over threshold.
-        elif data == '1' and flag == 0:
+        elif data == 'True' and flag == 0:
             flag = 1
             lighttimer = time.time()
             deadtimer = time.time()
             GPIO.output(7, HIGH)
-        elif data == '1' and flag == 1:
+        elif data == 'True' and flag == 1:
             deadtimer = time.time()
-        elif data == '0' and flag == 1:
+        elif data == 'False' and flag == 1:
             flag = 0
             lighttimer = time.time()
             deadtimer = time.time()
             GPIO.output(7, LOW)
             GPIO.output(11, LOW)
-        elif data == '0' and flag == 0:
+        elif data == 'False' and flag == 0:
             deadtimer = time.time()
         elif data == 'hello':
             deadtimer = time.time()
@@ -84,6 +86,7 @@ def lightState(clientsocket):
 def sendUDP(clientsocket):
     lock = threading.Lock() # Used for locking the sockets later. Prevents cancelling by the operating system.
     timer = time.time() # used for sending packets containing the string 'hello' within intervals.
+    clientsocket.sendto(bytes('getState', MSG_ENC), (DST_IP, PORT))
     while True:
         if time.time() - timer >= 0.5:
             lock.acquire() # lock socket.
@@ -109,15 +112,25 @@ def main():
     t2 = threading.Thread(target = sendUDP, args = (clientsocket,))
 
     # Starts the threads.
-    t1.start()
+    t1.setDaemon(True)
+    t2.setDaemon(True)
+    t1.start()  
     t2.start()
 
     while True:
         print('If you want to exit the program, type quit')
-        data = input()
-        if data == 'quit':
+        try:
+            data = input()
+            if data == 'quit':
+                GPIO.cleanup()
+                clientsocket.close()
+                exit()
+        except KeyboardInterrupt:
             GPIO.cleanup()
-            clientsocket.clean()
-            sys.exit()
-
+            clientsocket.close()
+            exit()
+        except EOFError:
+            GPIO.cleanup()
+            clientsocket.close()
+            exit()
 main()

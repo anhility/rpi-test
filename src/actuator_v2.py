@@ -40,7 +40,7 @@ def listenonUDP(clientsocket):
             return data.decode(MSG_ENC) # return decoded data for use in the function lightState.
         else:
             return '255'
-    except KeyboardInterrupt: # Catches keyboard interruption. CTRL + C, and exits.
+    except KeyboardInterrupt: # Catches CTRL-C.
         pass
     except:
         return '255'

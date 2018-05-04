@@ -10,9 +10,9 @@ HIGH = GPIO.HIGH
 LOW = GPIO.LOW
 
 # Networking
-SRC_IP = '10.35.0.1'
-DST_IP = '10.34.0.1'
-PORT = 5005
+SRC_IP = '10.35.0.1' # The actuator.
+DST_IP = '10.34.0.1' # The sensor.
+PORT = 5005 # Port number used for sending and listening.
 
 # Message
 SNT_MSG = 'hello' # The hello message
@@ -29,13 +29,14 @@ def lightFlash():
     time.sleep(0.2)
 
 # Listens on UDP packets and returns the decoded data, as long as it's from the right IP and port.
+# If if it fails, or the received IP doesn't match the sensor's IP, it returns '255'.
 def listenonUDP(clientsocket):
     lock = threading.Lock()
     try:
         lock.acquire()
         data, (address, port) = clientsocket.recvfrom(1024)
         lock.release()
-        if str(address) == DST_IP and int(port) == PORT:
+        if str(address) == DST_IP and int(port) == PORT: # checks for correct IP and PORT.
             return data.decode(MSG_ENC) # return decoded data for use in the function lightState.
         else:
             return '255'
@@ -44,22 +45,21 @@ def listenonUDP(clientsocket):
     except:
         return '255'
 
-# Thread1, lights LEDs.
+# Thread1, lights LEDs. It uses the 'listenonUDP'-function to determine whether or not to turn on
+# the LEDs. If it the string in the variable data matches 'True', it will turn on the LED according to the
+# specifications. It it receives 'False', it will turn off the LEDs.
+# If it receives a 'hello', it will update the dead timer. Every other string or data is disregarded.
 def lightState(clientsocket):
     lock = threading.Lock()
-    flag = 0        # Used for if statements, so they don't mess up the timers. 
-                    # 1 means a 1 has already been received.
+    flag = 0        # Used for if statements, so they don't reset the timer if multiple packets containing the
+                    # same data is received. 1 means 'True' has already been received, 0 for 'False'.
     deadtimer = time.time()   # Used for printing messages on screen if timer gets too great.
-    lighttimer = 0.0
+    lighttimer = 0.0 # Used for determining when to light the second LED.
 
-    # This loop runs continously. It checks the data coming from a socket and decides
-    # what to do with it. If there's too long of a delay between packets, a LED will flash
-    # until a packet is received. If the system receives a 1, it lights one LED and if
-    # more than 5 seconds pass and the system hasn't recieved a 0, then it turns on the second LED.
     while True:
         data = listenonUDP(clientsocket) # Calls the function and returns strings. 255 == no data from socket.
         if data == '255' and time.time() - deadtimer >= D_TIME:
-            lightFlash()                # Flashes light if dead timer is
+            lightFlash()                # Flashes light if dead timer is over threshold.
         elif data == 'True' and flag == 0:
             flag = 1
             lighttimer = time.time()
@@ -84,15 +84,17 @@ def lightState(clientsocket):
 
 # Thread2, sends hello packets.
 def sendUDP(clientsocket):
-    lock = threading.Lock()
-    timer = time.time()
-    clientsocket.sendto(bytes('getState', MSG_ENC), (DST_IP, PORT))
+    lock = threading.Lock() # Used for locking the sockets later. Prevents cancelling by the operating system.
+    timer = time.time() # used for sending packets containing the string 'hello' within intervals.
+    clientsocket.sendto(bytes('getState', MSG_ENC), (DST_IP, PORT)) # Gets the current state of the LEDs from the
+                                                                    # sensor. Used in case the temp is >26 during
+                                                                    # startup.
     while True:
         if time.time() - timer >= 0.5:
-            lock.acquire()
+            lock.acquire() # lock socket.
             clientsocket.sendto(bytes(SNT_MSG, MSG_ENC), (DST_IP, PORT))
-            lock.release()
-            timer = time.time()
+            lock.release() # unlock socket.
+            timer = time.time() # Resets timer.
 
 def main():
     print('Running program')
@@ -103,8 +105,10 @@ def main():
     GPIO.output(7, LOW)             # Turns off lights at startup
     GPIO.output(11, LOW)
     clientsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    clientsocket.bind((SRC_IP, PORT)) # Binds the IP and port to the pi. Prevents the socket from closing.
-    clientsocket.setblocking(False)
+    clientsocket.bind((SRC_IP, PORT))   # Binds the IP and port to the pi. Prevents the socket from closing.
+    clientsocket.setblocking(False)     # Prevents wait time when reading from socket. 
+                                        # That way, the socket always times out when there's no data to be read.
+
     # Makes the functions lightState and sendUDP into threads and sends clientsocket as argument.
     t1 = threading.Thread(target = lightState, args = (clientsocket,))
     t2 = threading.Thread(target = sendUDP, args = (clientsocket,))

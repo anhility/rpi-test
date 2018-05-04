@@ -86,7 +86,9 @@ def lightState(clientsocket):
 def sendUDP(clientsocket):
     lock = threading.Lock() # Used for locking the sockets later. Prevents cancelling by the operating system.
     timer = time.time() # used for sending packets containing the string 'hello' within intervals.
-    clientsocket.sendto(bytes('getState', MSG_ENC), (DST_IP, PORT))
+    clientsocket.sendto(bytes('getState', MSG_ENC), (DST_IP, PORT)) # Gets the current state of the LEDs from the
+                                                                    # sensor. Used in case the temp is >26 during
+                                                                    # startup.
     while True:
         if time.time() - timer >= 0.5:
             lock.acquire() # lock socket.
